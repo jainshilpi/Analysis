@@ -1,0 +1,84 @@
+#include "Analyzer/Analyser/interface/GlobeCuts.h"
+
+
+GlobeCuts::GlobeCuts(const edm::ParameterSet& iConfig) {
+
+  edm::ParameterSet psetElectron            = iConfig.getParameter<edm::ParameterSet>("ElectronCuts");
+  edm::ParameterSet psetTrack               = iConfig.getParameter<edm::ParameterSet>("TrackCuts");
+  
+  electronEtCut_            = psetElectron.getParameter<double>("EtCut");
+  trackPtCut_               = psetTrack.getParameter<double>("PtCut");
+
+}
+
+// The Functions return "true" if the object should be cut
+
+
+// Electrons
+bool GlobeCuts::cut(const reco::GsfElectron& electron) { 
+          return (electron.et() < electronEtCut_); 
+}
+
+// Tracks
+bool GlobeCuts::cut(const reco::Track &track) { 
+          return (track.pt() < trackPtCut_); 
+}
+
+
+bool GlobeCuts::isocut(const reco::Track &tk, const reco::Track &lep, const reco::Vertex &vtx) {
+    
+    using ROOT::Math::VectorUtil::DeltaR;
+    
+    //Inside the veto cone
+    if(DeltaR(tk.innerMomentum(),lep.innerMomentum()) < isoInnerCone_) return false;
+
+    //Outside the isolation cone
+    if(DeltaR(tk.innerMomentum(),lep.innerMomentum()) > isoOuterCone_) return false;
+
+    double d0 = sqrt((tk.vertex() - vtx.position()).perp2());
+    double dZ = (tk.vertex() - vtx.position()).z();
+
+    if(tk.numberOfValidHits() >= 10)
+        return (tk.pt() > 1 && d0 < 1 && dZ < 5);
+    else if(tk.numberOfValidHits() >= 8 && tk.numberOfValidHits() <= 9)
+        return (tk.pt() > 1 && d0 < 0.2 && dZ < 2.0 && (d0 / tk.d0Error() < 10) && (dZ / tk.dzError() < 10));
+    else if(tk.numberOfValidHits() >= 5 && tk.numberOfValidHits() <= 7)
+        return (tk.pt() > 1 && d0 < 0.04 && dZ < 0.5 && (d0 / tk.d0Error() < 7) && (dZ / tk.dzError() < 7));
+    else if(tk.numberOfValidHits() >= 3 && tk.numberOfValidHits() <= 4)
+        return (tk.pt() > 1 && d0 < 0.02 && dZ < 0.2 && (d0 / tk.d0Error() < 3) && (dZ / tk.dzError() < 3));
+    else return false;
+    
+
+}
+
+bool GlobeCuts::isocut(const reco::Track &tk, const reco::Track &lep) {
+    
+    using ROOT::Math::VectorUtil::DeltaR;
+
+    //Inside the veto cone
+    if(DeltaR(tk.innerMomentum(),lep.innerMomentum()) < isoInnerCone_) return false;
+
+    //Outside the isolation cone
+    if(DeltaR(tk.innerMomentum(),lep.innerMomentum()) > isoOuterCone_) return false;
+
+    double d0 = sqrt((tk.vertex() - lep.vertex()).perp2());
+    double dZ = (tk.vertex() - lep.vertex()).z();
+    
+    if(tk.numberOfValidHits() >= 10)
+        return (tk.pt() > 1 && d0 < 1 && dZ < 5);
+    else if(tk.numberOfValidHits() >= 8 && tk.numberOfValidHits() <= 9)
+        return (tk.pt() > 1 && d0 < 0.2 && dZ < 2.0 && d0 / tk.d0Error() < 10 && dZ / tk.dzError() < 10);
+    else if(tk.numberOfValidHits() >= 5 && tk.numberOfValidHits() <= 7)
+        return (tk.pt() > 1 && d0 < 0.04 && dZ < 0.5 && d0 / tk.d0Error() < 7 && dZ / tk.dzError() < 7);
+    else if(tk.numberOfValidHits() >= 3 && tk.numberOfValidHits() <= 4)
+        return (tk.pt() > 1 && d0 < 0.02 && dZ < 0.2 && d0 / tk.d0Error() < 3 && dZ / tk.dzError() < 3);
+    else return false;
+    
+
+}
+
+    
+
+
+
+
